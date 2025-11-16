@@ -1,0 +1,874 @@
+@extends('layouts.app')
+@push('style')
+<style>
+  .expended_html {
+    border-top: 2px solid #d9d9d9;
+    margin-bottom: 20px;
+    padding-top: 20px;
+  }
+
+  .remove-variant {
+    color: #Fff;
+    text-decoration: underline;
+    position: absolute;
+    top: 17px;
+    right: 10px;
+    font-size: 16px;
+  }
+
+  .card .btn.btn-link {
+    display: block;
+    width: 100%;
+    text-align: left;
+    color: #fff;
+  }
+</style>
+@endpush
+@section('content')
+@php
+$countLoop = 0;
+@endphp
+<link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.6-rc.0/css/select2.min.css" rel="stylesheet" />
+<div class="container">
+  <form action="{{route('save-product')}}" method="post" enctype="multipart/form-data" onsubmit="return false">
+    {{csrf_field()}}
+    <div id="accordion">
+      <div class="card">
+        <div class="card-header" id="headingOne">
+          <h5 class="mb-0">
+            <button class="btn btn-link" data-toggle="collapse" data-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+              Article
+            </button>
+          </h5>
+        </div>
+
+        <div id="collapseOne" class="collapse show" aria-labelledby="headingOne" data-parent="#accordion">
+          <div class="card-body">
+            <input type="hidden" name="id[0]" value="{{isset($detail)?$detail->id:''}}">
+            <div class="row">
+              <div class="col-md-2 form-group">
+                <label>Outline</label>
+                <select name="outline" id="outline" class="form-control">
+                  @foreach($outlines->items as $outline)
+                  <option value="{{ $outline->label }}" {{isset($detail) && $detail->outline == $outline->label?'selected':''}}>{{ $outline->name->en }}</option>
+                  @endforeach
+                </select>
+              </div>
+              <div class="col-md-3 form-group">
+                <label>Title</label>
+                <input type="text" class="form-control" name="title" required="" value="{{isset($detail)?$detail->title:''}}">
+              </div>
+              <div class="col-md-3 form-group">
+                <label>Tags</label>
+                <input type="text" class="form-control" name="tags" required="" value="{{isset($detail)?$detail->tags:''}}">
+              </div>
+              <div class="col-md-2 form-group">
+                <label>Brand Code</label>
+                <select name="brand_code" class="form-control">
+                  <option value="">Select</option>
+                  @if(!empty($brand_codes))
+                  @foreach($brand_codes->items as $bc)
+                  <option value="{{$bc->label}}" {{isset($detail) && $detail->brand_code == $bc->label?'selected':''}}>{{$bc->name->en}}</option>
+                  @endforeach
+                  @endif
+                </select>
+              </div>
+              <div class="col-md-2 form-group">
+                <label>Product Model ID</label>
+                <input type="text" class="form-control" name="merchant_product_model_id" value="{{isset($detail)?$detail->merchant_product_model_id:''}}">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-4 form-group">
+                <label>Target Gender Code </label>
+                <select name="target_genders[]" class="form-control myselect" multiple="">
+                  <option value="">Select</option>
+                  @if(!empty($target_genders))
+                  @foreach($target_genders->items as $tg)
+                  <option value="{{$tg->label}}" {{isset($detail) && !is_null($detail->target_genders) && in_array($tg->label, $detail->target_genders)?'selected':''}}>{{$tg->name->en}}</option>
+                  @endforeach
+                  @endif
+                </select>
+              </div>
+              <div class="col-md-4 form-group">
+                <label>Target Age Group Code </label>
+                <select name="target_age_groups[]" class="form-control myselect" multiple="">
+                  <option value="">Select</option>
+                  @if(!empty($target_age_groups))
+                  @foreach($target_age_groups->items as $tag)
+                  <option value="{{$tag->label}}" {{isset($detail) && !is_null($detail->target_age_groups) &&  in_array($tag->label, $detail->target_age_groups)?'selected':''}}>{{$tag->name->en}}</option>
+                  @endforeach
+                  @endif
+                </select>
+              </div>
+              <div class="col-md-4 form-group">
+                <label>Size Group </label>
+                <select name="size_group" class="form-control">
+                  <option value="">Select</option>
+                  @if(!empty($size_group))
+                  @foreach($size_group->items as $tag)
+                  <option value="{{$tag->label}}" {{isset($detail) && !is_null($detail->size_group) &&  $tag->label == $detail->size_group?'selected':''}}>{{$tag->_meta->descriptions->en}}[{{$tag->label}}]</option>
+                  @endforeach
+                  @endif
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card" id="clone">
+        <div class="card-header" id="headingTwo">
+          <h5 class="mb-0">
+            <button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+              Article Variant
+            </button>
+            <a href="javascript:;" class="remove-variant">Remove Variant</a>
+          </h5>
+        </div>
+        <div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-parent="#accordion">
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-12">
+                <div class="row">
+                  <div class="col-md-2 form-group">
+                    <label>Primary Color Code</label>
+                    <select name="color_code[0]" class="form-control">
+                      <option value="">Select</option>
+                      @if(!empty($color_code))
+                      @foreach($color_code->items as $cc)
+                      <option value="{{$cc->label}}" {{isset($detail) && $detail->color_code == $cc->label?'selected':''}}>{{$cc->value->localized->en}}</option>
+                      @endforeach
+                      @endif
+                    </select>
+                  </div>
+                  <div class="col-md-2 form-group">
+                    <label>Article Variant ID</label>
+                    <input type="text" class="form-control" name="merchant_product_config_id[0]" value="{{isset($detail)?$detail->merchant_product_config_id:''}}">
+                  </div>
+                </div>
+                @if(!empty(isset($detail) && $detail->zalando_sizes))
+                @foreach($detail->zalando_sizes as $key => $v)
+                <div class="expended_html">
+                  <div class="row">
+                    <div class="col-md-2 form-group">
+                      <label>Size Ean</label>
+                      <input type="text" class="form-control" name="size_ean[0][]" value="{{$v['ean']}}" required>
+                    </div>
+                    <div class="col-md-2 form-group">
+                      <label>Size Sku</label>
+                      <input type="text" class="form-control" name="size_sku[0][]" value="{{$v['sku']}}" required>
+                    </div>
+                    <div class="col-md-1 form-group">
+                      <label>Size Title</label>
+                      <input type="text" class="form-control" name="size_title[0][]" value="{{$v['title']}}" required>
+                    </div>
+                    @php
+                    $currencies = ['EUR', 'pln', 'dkk', 'gbp', 'SEK', 'CZK', 'ron', 'huf'];
+                    @endphp
+                    @foreach($currencies as $currency)
+                    <div class="col-md-1 form-group pr-0">
+                      <label>{{ strtoupper($currency) }}</label>
+                      @if($currency == "EUR")
+                      <input type="text" class="form-control" name="price[0][]" value="{{ !empty($v['price']) ? $v['price'] : '' }}" required>
+                      <label>Quantity</label>
+                      <input type="text" class="form-control" name="quantity[0][]" value="{{ !empty($v['quantity']) ? $v['quantity'] : 0 }}" required>
+                      @else
+                      <input type="text" class="form-control" name="{{ $currency }}_price[0][]" value="{{ !empty($v[$currency.'_price']) ? $v[$currency.'_price'] : '' }}" required>
+                      <label>Quantity</label>
+                      <input type="text" class="form-control" name="quantity_{{ $currency }}[0][]" value="{{ !empty($v['quantity_'.$currency]) ? $v['quantity_'.$currency] : 0 }}" required>
+                      @endif
+                    </div>
+                    @endforeach
+                    <div class="col-md-1 form-group">
+                      <label class="btn-block"><a href="javascript:;" class="removeNo btn-danger btn-sm btn-xs pull-right" style="margin-bottom:5px;"> &times;</a></label>
+                      <label><input type="checkbox" name="promotionPrice[0][]" onchange="$('#promotionl{{$countLoop}}').toggle()"> Promo Price ?</label>
+                    </div>
+                  </div>
+                  <div class="row" id="promotionl{{$countLoop}}" style="display: none;">
+                    <div class="col-md-2">
+                      <label>Start Date</label>
+                      <input type="date" name="start_date[0][]" class="form-control datepicker" value="{{!empty($v['start_date'])?date('Y-m-d',strtotime($v['start_date'])):''}}">
+                    </div>
+                    <div class="col-md-2">
+                      <label>End Date</label>
+                      <input type="date" name="end_date[0][]" class="form-control datepicker" value="{{!empty($v['end_date'])?date('Y-m-d',strtotime($v['end_date'])):''}}">
+                    </div>
+                    @foreach($currencies as $currency)
+                    <div class="col-md-1 form-group pr-0">
+                      <label>{{ strtoupper($currency) }}</label>
+                      <input type="text" class="form-control" name="pro_{{ $currency }}_price[0][]" value="{{ !empty($v['pro_'.$currency.'_price']) ? $v['pro_'.$currency.'_price'] : '' }}">
+                    </div>
+                    @endforeach
+                  </div>
+                </div>
+                @php
+                $countLoop++;
+                @endphp
+                @endforeach
+                @endif
+                <div class="new_sizes"></div>
+                <div class="text-center">
+                  <a href="javascript:void(0);" class="btn-primary btn addmoresize" data-index="0">Add Size</a>
+                </div>
+                <br>
+                @if(isset($detail) && !empty($detail->zalando_images))
+                @php $count = 1; @endphp
+                @foreach($detail->zalando_images as $i)
+                @php $path = $i['media_path']; @endphp
+                <div class="row" id="deleteImage{{$count}}">
+                  <div class="col-md-4 form-group">
+                    <label>Image</label>
+                    <input type="file" class="form-control" name="image[0][]">
+                  </div>
+                  <div class="col-md-4 form-group">
+                    <label>Image Sort Key</label>
+                    <input type="hidden" name="old_image[0][]" value="{{$i['media_path']}}">
+                    <input type="text" class="form-control" name="image_sort[0][]" value="{{$i['media_sort_key']}}">
+                  </div>
+                  <div class="col-md-4 form-group">
+                    <button type="button" class="btn btn-sm btn-danger delete-image" onclick="deleteImage('deleteImage{{$count}}','{{$path}}')"><i class="fa fa-trash"></i></button>
+                    <!-- <a href="{{$i['media_path']}}" target="_blank"><img src="{{$i['media_path']}}" style="height: 200px;" class="img-thumbnail"></a> -->
+                  </div>
+                </div>
+                @php $count++; @endphp
+                @endforeach
+                @else
+                <div class="row">
+                  <div class="col-md-4 form-group">
+                    <label>Image</label>
+                    <input type="file" class="form-control" name="image[0][]">
+                  </div>
+                  <div class="col-md-4 form-group">
+                    <label class="btn-block">Image Sort Key</label>
+                    <input type="hidden" name="old_image[0][]" value="">
+                    <input type="text" class="form-control" name="image_sort[0][]" required="">
+                  </div>
+                </div>
+                @endif
+                <div class="new_images"></div>
+                <p class="mb-0"><strong>Recommended Dimensions: </strong> Width : 1524, Height : 2200</p>
+                <p><strong>Required Dimensions: </strong> Min Width : 610, Min Height : 880, Max Width : 6000, Max Height : 9000 </p>
+                <div class="text-center">
+                  <a href="javascript:void(0);" class="btn-primary btn addmoreImage" data-index="0">Add Image</a>
+                </div>
+                <div class="row">
+                  <div class="col-md-4 form-group">
+                    <label>Session </label>
+                    <select name="session_code[0]" class="form-control" required="">
+                      <option value="">Select</option>
+                      @if(!empty($sessions))
+                      @foreach($sessions->items as $s)
+                      <option value="{{$s->label}}" {{isset($detail) && $detail->season_code == $s->label?'selected':''}}>{{$s->value->localized->en}}</option>
+                      @endforeach
+                      @endif
+                    </select>
+                  </div>
+                  <div class="col-md-4 form-group">
+                    <label>Supplier Color</label>
+                    <input type="text" class="form-control" name="supplier_color[0]" required="" value="{{!empty($detail->supplier_color)?$detail->supplier_color:'white'}}">
+                  </div>
+                </div>
+                @if(isset($detail) && !empty($detail->material))
+                @foreach($detail->material as $m)
+                <div class="expended_html">
+                  <div class="row">
+                    <div class="col-md-4 form-group">
+                      <label>Material </label>
+                      <select name="material_code[0][]" class="form-control">
+                        <option value="">Select</option>
+                        @if(!empty($materials))
+                        @foreach($materials->items as $mi)
+                        <option value="{{$mi->label}}" {{$m["material_code"] == $mi->label?"selected":""}}>{{$mi->value->localized->en}}</option>
+                        @endforeach
+                        @endif
+                      </select>
+                    </div>
+                    <div class="col-md-4 form-group">
+                      <label>Material Percentage</label>
+                      <input type="number" step=".01" class="form-control" name="material_percentage[0][] " placeholder="%" value="{{$m["material_percentage"]}}">
+                    </div>
+                  </div>
+                </div>
+                @endforeach
+                @endif
+                <div class="new_material"></div>
+                <div class="text-center">
+                  <a href="javascript:void(0);" class="btn-primary btn addmore_material" data-index="0">Add Material</a>
+                </div>
+                <div class="form-group">
+                  <label>Body</label>
+                  <textarea name="body[0]" class="form-control editor">{{isset($detail)?$detail->body_html:''}}</textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        @foreach($variants as $ind => $v)
+        @php
+        $ind++;
+        @endphp
+        <input type="hidden" name="id[{{$ind}}]" value="{{isset($v)?$v->id:''}}">
+        <div class="card" id="clone">
+          <div class="card-header" id="headingTwo{{ $v->id }}">
+            <h5 class="mb-0">
+              <button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapse{{ $v->id }}" aria-expanded="false" aria-controls="collapse{{ $v->id }}">
+                Article Variant
+              </button>
+              <a href="javascript:;" class="remove-variant">Remove Variant</a>
+            </h5>
+          </div>
+          <div id="collapse{{ $v->id }}" class="collapse" aria-labelledby="headingTwo{{ $v->id }}" data-parent="#accordion">
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-12">
+                  <div class="row">
+                    <div class="col-md-2 form-group">
+                      <label>Primary Color Code</label>
+                      <select name="color_code[{{$ind}}]" class="form-control">
+                        <option value="">Select</option>
+                        @if(!empty($color_code))
+                        @foreach($color_code->items as $cc)
+                        <option value="{{$cc->label}}" {{isset($v) && $v->color_code == $cc->label?'selected':''}}>{{$cc->value->localized->en}}</option>
+                        @endforeach
+                        @endif
+                      </select>
+                    </div>
+                    <div class="col-md-2 form-group">
+                      <label>Article Variant ID</label>
+                      <input type="text" class="form-control" name="merchant_product_config_id[{{$ind}}]" value="{{isset($v)?$v->merchant_product_config_id:''}}">
+                    </div>
+                  </div>
+                  @if(!empty(isset($v) && $v->zalando_sizes))
+                  @foreach($v->zalando_sizes as $key => $vs)
+                  <div class="expended_html">
+                    <div class="row">
+                      <div class="col-md-2 form-group">
+                        <label>Size Ean</label>
+                        <input type="text" class="form-control" name="size_ean[{{$ind}}][]" value="{{$vs['ean']}}" required="">
+                      </div>
+                      <div class="col-md-2 form-group">
+                        <label>Size Sku</label>
+                        <input type="text" class="form-control" name="size_sku[{{$ind}}][]" value="{{$vs['sku']}}" required="">
+                      </div>
+                      <div class="col-md-1 form-group">
+                        <label>Size Title</label>
+                        <input type="text" class="form-control" name="size_title[{{$ind}}][]" value="{{$vs['title']}}" required="">
+                      </div>
+                      @php
+                      $currencies = ['EUR', 'pln', 'dkk', 'gbp', 'SEK', 'CZK', 'ron', 'huf'];
+                      @endphp
+                      @foreach($currencies as $currency)
+                      <div class="col-md-1 form-group pr-0">
+                        <label>{{ strtoupper($currency) }}</label>
+                        @if($currency == "EUR")
+                        <input type="text" class="form-control" name="price[{{ $ind }}][]" value="{{ !empty($vs['price']) ? $vs['price'] : '' }}" required>
+                        <label>Quantity</label>
+                        <input type="text" class="form-control" name="quantity[{{ $ind }}][]" value="{{ !empty($vs['quantity']) ? $vs['quantity'] : 0 }}" required>
+                        @else
+                        <input type="text" class="form-control" name="{{ $currency }}_price[{{ $ind }}][]" value="{{ !empty($vs[$currency.'_price']) ? $vs[$currency.'_price'] : '' }}" required>
+                        <label>Quantity</label>
+                        <input type="text" class="form-control" name="quantity_{{ $currency }}[{{ $ind }}][]" value="{{ !empty($vs['quantity_'.$currency]) ? $vs['quantity_'.$currency] : 0 }}" required>
+                        @endif
+                      </div>
+                      @endforeach
+                      <div class="col-md-1 form-group">
+                        <label class="btn-block"><a href="javascript:;" class="removeNo btn-danger btn-sm btn-xs pull-right" style="margin-bottom:5px;"> &times;</a></label>
+                        <label><input type="checkbox" name="promotionPrice[{{ $ind }}][]" onchange="$('#promotionl{{$countLoop}}').toggle()"> Promo Price ?</label>
+                      </div>
+                    </div>
+                    <div class="row" id="promotionl{{$countLoop}}" style="display: none;">
+                      <div class="col-md-2">
+                        <label>Start Date</label>
+                        <input type="date" name="start_date[{{ $ind }}][]" class="form-control datepicker" value="{{!empty($vs['start_date'])?date('Y-m-d',strtotime($vs['start_date'])):''}}">
+                      </div>
+                      <div class="col-md-2">
+                        <label>End Date</label>
+                        <input type="date" name="end_date[{{ $ind }}][]" class="form-control datepicker" value="{{!empty($vs['end_date'])?date('Y-m-d',strtotime($vs['end_date'])):''}}">
+                      </div>
+                      @foreach($currencies as $currency)
+                      <div class="col-md-1 form-group pr-0">
+                        <label>{{ strtoupper($currency) }}</label>
+                        <input type="text" class="form-control" name="pro_{{ $currency }}_price[{{ $ind }}][]" value="{{ !empty($vs['pro_'.$currency.'_price']) ? $vs['pro_'.$currency.'_price'] : '' }}">
+                      </div>
+                      @endforeach
+                    </div>
+                  </div>
+                  @php
+                  $countLoop++;
+                  @endphp
+                  @endforeach
+                  @endif
+                  <div class="new_sizes"></div>
+                  <div class="text-center">
+                    <a href="javascript:void(0);" class="btn-primary btn addmoresize" data-index="{{$ind}}">Add Size</a>
+                  </div>
+                  <br>
+                  @if(isset($v) && !empty($v->zalando_images))
+                  @php $count = 1; @endphp
+                  @foreach($v->zalando_images as $i)
+                  @php $path = $i['media_path']; @endphp
+                  <div class="row" id="deleteImage{{$count}}">
+                    <div class="col-md-4 form-group">
+                      <label>Image</label>
+                      <input type="file" class="form-control" name="image[{{$ind}}][]">
+                    </div>
+                    <div class="col-md-4 form-group">
+                      <label>Image Sort Key</label>
+                      <input type="hidden" name="old_image[{{$ind}}][]" value="{{$i['media_path']}}">
+                      <input type="text" class="form-control" name="image_sort[{{$ind}}][]" value="{{$i['media_sort_key']}}">
+                    </div>
+                    <div class="col-md-4 form-group">
+                      <button type="button" class="btn btn-sm btn-danger delete-image" onclick="deleteImage('deleteImage{{$count}}','{{$path}}')"><i class="fa fa-trash"></i></button>
+                      <!-- <a href="{{$i['media_path']}}" target="_blank"><img src="{{$i['media_path']}}" style="height: 200px;" class="img-thumbnail"></a> -->
+                    </div>
+                  </div>
+                  @php $count++; @endphp
+                  @endforeach
+                  @else
+                  <div class="row">
+                    <div class="col-md-4 form-group">
+                      <label>Image</label>
+                      <input type="file" class="form-control" name="image[{{$ind}}][]">
+                    </div>
+                    <div class="col-md-4 form-group">
+                      <label class="btn-block">Image Sort Key</label>
+                      <input type="hidden" name="old_image[{{$ind}}][]" value="">
+                      <input type="text" class="form-control" name="image_sort[{{$ind}}][]" required="">
+                    </div>
+                  </div>
+                  @endif
+                  <div class="new_images"></div>
+                  <p class="mb-0"><strong>Recommended Dimensions: </strong> Width : 1524, Height : 2200</p>
+                  <p><strong>Required Dimensions: </strong> Min Width : 610, Min Height : 880, Max Width : 6000, Max Height : 9000 </p>
+                  <div class="text-center">
+                    <a href="javascript:void(0);" class="btn-primary btn addmoreImage" data-index="{{$ind}}">Add Image</a>
+                  </div>
+                  <div class="row">
+                    <div class="col-md-4 form-group">
+                      <label>Session </label>
+                      <select name="session_code[{{$ind}}]" class="form-control" required="">
+                        <option value="">Select</option>
+                        @if(!empty($sessions))
+                        @foreach($sessions->items as $s)
+                        <option value="{{$s->label}}" {{isset($v) && $v->season_code == $s->label?'selected':''}}>{{$s->value->localized->en}}</option>
+                        @endforeach
+                        @endif
+                      </select>
+                    </div>
+                    <div class="col-md-4 form-group">
+                      <label>Supplier Color</label>
+                      <input type="text" class="form-control" name="supplier_color[{{$ind}}]" required="" value="{{!empty($v->supplier_color)?$v->supplier_color:'white'}}">
+                    </div>
+                  </div>
+                  @if(isset($v) && !empty($v->material))
+                  @foreach($v->material as $m)
+                  <div class="expended_html">
+                    <div class="row">
+                      <div class="col-md-4 form-group">
+                        <label>Material </label>
+                        <select name="material_code[{{$ind}}][]" class="form-control">
+                          <option value="">Select</option>
+                          @if(!empty($materials))
+                          @foreach($materials->items as $mi)
+                          <option value="{{$mi->label}}" {{$m["material_code"] == $mi->label?"selected":""}}>{{$mi->value->localized->en}}</option>
+                          @endforeach
+                          @endif
+                        </select>
+                      </div>
+                      <div class="col-md-4 form-group">
+                        <label>Material Percentage</label>
+                        <input type="number" step=".01" class="form-control" name="material_percentage[{{$ind}}][] " placeholder="%" value="{{$m["material_percentage"]}}">
+                      </div>
+                    </div>
+                  </div>
+                  @endforeach
+                  @endif
+                  <div class="new_material"></div>
+                  <div class="text-center">
+                    <a href="javascript:void(0);" class="btn-primary btn addmore_material" data-index="{{$ind}}">Add Material</a>
+                  </div>
+                  <div class="form-group">
+                    <label>Body</label>
+                    <textarea name="body[{{$ind}}]" class="form-control editor">{{isset($v)?$v->body_html:''}}</textarea>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          @endforeach
+          <div id="append-variant"></div>
+        </div>
+
+        <div class="row" style="margin:20px;">
+          <div class="col-md-4">
+            <label for=""><input type="checkbox" name="push" id="push" value="1"> Push Product to Zalando</label>
+          </div>
+          <div class="col-md-4">
+            <center><button class="btn btn-primary" type="submit" id="save-form">Save Product</button></center>
+          </div>
+          <div class="col-md-4">
+            <a href="javascript:;" id="add-variation" class="float-right btn btn-sm btn-success">Add Variation</a>
+          </div>
+        </div>
+
+  </form>
+
+</div>
+@endsection
+@push('script')
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.8/js/select2.min.js" defer></script>
+<script type="text/javascript">
+  $(document).ready(function() {
+    $("#save-form").click(function() {
+      $(this).closest("form").get(0).submit();
+    })
+    $('.myselect').select2();
+
+  });
+</script>
+<!-- <script  type="text/javascript" src="https://cdn.ckeditor.com/4.14.1/standard/ckeditor.js"></script> -->
+<script type="text/javascript">
+  $(document).ready(function() {
+
+    $(document).on("click", ".remove-variant", function() {
+      $(this).closest('.card').remove();
+    })
+
+    var index = {
+      {
+        count($variants) + 1
+      }
+    };
+    $("#add-variation").click(function() {
+      var variant_html = getVariantTemplate(index);
+      var variantTemplate = `<div class="card">
+          <div class="card-header" id="headingOne` + index + `">
+          <input type="hidden" name="id[` + index + `]" value="">
+            <h5 class="mb-0">
+              <button class="btn btn-link" data-toggle="collapse" data-target="#collapseOne` + index + `" aria-expanded="true" aria-controls="collapseOne` + index + `">
+                Article Variation 
+              </button>
+              <a href="javascript:;" class="remove-variant">Remove Variant</a>
+            </h5>
+          </div>
+
+          <div id="collapseOne` + index + `" class="collapse" aria-labelledby="headingOne` + index + `" data-parent="#accordion">
+            <div class="card-body">
+              ` + variant_html + `
+            </div>
+          </div>
+        </div>`
+      index++;
+      $("#append-variant").append(variantTemplate);
+    })
+
+    // CKEDITOR.replace( 'body' );
+    var count = 2;
+    $(document).on("click", ".addmore_material", function() {
+      var index = $(this).attr("data-index");
+      var number_html = '<div class="expended_html">  <div class="row">\
+                  <div class="col-md-4 form-group">\
+                   <label>Material </label>\
+                   <select name="material_code[' + index + '][]" class="form-control">\
+                     <option value="">Select</option>\
+                     @if(!empty($materials))\
+                     @foreach($materials->items as $mi)\
+                     <option value="{{$mi->label}}" >{{$mi->value->localized->en}}</option>\
+                     @endforeach\
+                     @endif\
+                    </select>\
+                 </div>\
+                 <div class="col-md-4 form-group">\
+                   <label class="btn-block">Material Percentage <a href="javascript:;" class="removeNo  btn-danger btn-sm btn-xs pull-right" style="margin-bottom:5px;" > &times;</a></label>\
+                   <input type="number" step=".01" class="form-control" name="material_percentage[' + index + '][] "  placeholder="%"  value="">\
+                 </div>\
+               </div>\
+         </div>';
+      $(this).parent().prev().append(number_html);
+      //  $(".new_material").append(number_html);
+
+      count++;
+
+      $(document).on("click", ".removeNo", function() {
+        $(this).closest('.expended_html').remove();
+        count--;
+
+        $(".addmore_material").show();
+      });
+    });
+
+    $(document).on("click", ".removeNo", function() {
+      $(this).closest('.expended_html').remove();
+      $(".addmore_material").show();
+    });
+
+
+    var count = 1;
+    $(document).on("click", ".addmoreImage", function() {
+      var index = $(this).attr("data-index");
+      var number_html =
+        '<div class="expended_html"> <div class="row">\
+                  <div class="col-md-4 form-group">\
+                   <label>Image</label>\
+                   <input type="file" class="form-control" name="image[' + index + '][]" >\
+                 </div>\
+                 <div class="col-md-4 form-group">\
+                   <label class="btn-block">Image Sort Key <a href="javascript:;" class="removeNo  btn-danger btn-sm btn-xs pull-right" style="margin-bottom:5px;" > &times;</a></label>\
+                   <input type="hidden" name="old_image[' + index + '][]" value="">\
+                   <input type="text" class="form-control" name="image_sort[' + index + '][]" required="" >\
+                 </div>\
+               </div>\
+         </div>';
+
+      //  $(".new_images").append(number_html);
+      $(this).parent().prev().append(number_html);
+
+      count++;
+
+      $(".removeNo").click(function() {
+        $(this).closest('.expended_html').remove();
+        count--;
+
+        $("#addmoreImage").show();
+      });
+    });
+
+
+    var count = {
+      {
+        isset($detail) ? $countLoop : 0
+      }
+    };
+    $(document).on("click", ".addmoresize", function() {
+      var index = $(this).attr("data-index");
+      var identefir = "$('#promotionl" + count + "')";
+      var number_html = '<div class="expended_html">\
+        <div class="row">\
+            <div class="col-md-2 form-group">\
+                <label>Size Ean</label>\
+                <input type="text" class="form-control" name="size_ean[' + index + '][]" required="">\
+            </div>\
+            <div class="col-md-2 form-group">\
+                <label>Size Sku</label>\
+                <input type="text" class="form-control" name="size_sku[' + index + '][]" required="">\
+            </div>\
+            <div class="col-md-1 form-group">\
+                <label>Size Title </label>\
+                <input type="text" class="form-control" name="size_title[' + index + '][]" required="">\
+            </div>\
+            <div class="col-md-1 form-group pr-0">\
+                <label>EUR </label>\
+                <input type="text" class="form-control" name="price[' + index + '][]" required="">\
+                <label>Quantity</label>\
+                <input type="text" class="form-control" name="quantity[' + index + '][]" required="">\
+            </div>\
+            <div class="col-md-1 form-group pr-0">\
+                <label>PLN</label>\
+                <input type="text" class="form-control" name="pln_price[' + index + '][]" required="">\
+                <label>Quantity</label>\
+                <input type="text" class="form-control" name="quantity_pln[' + index + '][]" required="">\
+            </div>\
+            <div class="col-md-1 form-group pr-0">\
+                <label>DKK</label>\
+                <input type="text" class="form-control" name="dkk_price[' + index + '][]" required="">\
+                <label>Quantity</label>\
+                <input type="text" class="form-control" name="quantity_dkk[' + index + '][]" required="">\
+            </div>\
+            <div class="col-md-1 form-group pr-0">\
+                <label>GBP</label>\
+                <input type="text" class="form-control" name="gbp_price[' + index + '][]" required="">\
+                <label>Quantity</label>\
+                <input type="text" class="form-control" name="quantity_gbp[' + index + '][]" required="">\
+            </div>\
+            <div class="col-md-1 form-group">\
+                <label>SEK</label>\
+                <input type="text" class="form-control" name="SEK_price[' + index + '][]" required="">\
+                <label>Quantity</label>\
+                <input type="text" class="form-control" name="quantity_SEK[' + index + '][]" required="">\
+            </div>\
+            <div class="col-md-1 form-group">\
+                <label>CZK</label>\
+                <input type="text" class="form-control" name="CZK_price[' + index + '][]" required="">\
+                <label>Quantity</label>\
+                <input type="text" class="form-control" name="quantity_CZK[' + index + '][]" required="">\
+            </div>\
+            <div class="col-md-1 form-group">\
+                <label>RON</label>\
+                <input type="text" class="form-control" name="ron_price[' + index + '][]">\
+                <label>Quantity</label>\
+                <input type="text" class="form-control" name="quantity_ron[' + index + '][]">\
+            </div>\
+            <div class="col-md-1 form-group">\
+                <label>HUF</label>\
+                <input type="text" class="form-control" name="huf_price[' + index + '][]">\
+                <label>Quantity</label>\
+                <input type="text" class="form-control" name="quantity_huf[' + index + '][]">\
+            </div>\
+            <div class="col-md-1 form-group">\
+                <label class="btn-block"><a href="javascript:;" class="removeNo btn-danger btn-sm btn-xs pull-right" style="margin-bottom:5px;"> &times;</a></label>\
+                <label><input type="checkbox" name="promotionPrice[' + index + '][]" onchange="' + identefir + '.toggle()"> Promo Price ?</label>\
+            </div>\
+        </div>\
+        <div class="row" id="promotionl' + count + '" style="display: none;">\
+            <div class="col-md-2">\
+                <label>Start Date</label>\
+                <input type="date" name="start_date[' + index + '][]" class="form-control datepicker">\
+            </div>\
+            <div class="col-md-2">\
+                <label>End Date</label>\
+                <input type="date" name="end_date[' + index + '][]" class="form-control datepicker">\
+            </div>\
+            <div class="col-md-1 form-group pr-0">\
+                <label>EUR</label>\
+                <input type="text" class="form-control" name="pro_price[' + index + '][]">\
+            </div>\
+            <div class="col-md-1 form-group pr-0">\
+                <label>PLN</label>\
+                <input type="text" class="form-control" name="pro_pln_price[' + index + '][]">\
+            </div>\
+            <div class="col-md-1 form-group pr-0">\
+                <label>DKK</label>\
+                <input type="text" class="form-control" name="pro_dkk_price[' + index + '][]">\
+            </div>\
+            <div class="col-md-1 form-group pr-0">\
+                <label>GBP</label>\
+                <input type="text" class="form-control" name="pro_gbp_price[' + index + '][]">\
+            </div>\
+            <div class="col-md-1 form-group">\
+                <label>SEK</label>\
+                <input type="text" class="form-control" name="pro_SEK_price[' + index + '][]">\
+            </div>\
+            <div class="col-md-1 form-group">\
+                <label>CZK</label>\
+                <input type="text" class="form-control" name="pro_CZK_price[' + index + '][]">\
+            </div>\
+            <div class="col-md-1 form-group">\
+                <label>RON</label>\
+                <input type="text" class="form-control" name="pro_ron_price[' + index + '][]">\
+            </div>\
+            <div class="col-md-1 form-group">\
+                <label>HUF</label>\
+                <input type="text" class="form-control" name="pro_huf_price[' + index + '][]">\
+            </div>\
+        </div>\
+    </div>';
+
+      $(this).parent().prev().append(number_html);
+      count++;
+
+      $(".removeNo").click(function() {
+        $(this).closest('.expended_html').remove();
+        count--;
+        $("#addmoresize").show();
+      });
+    });
+
+
+
+  });
+
+  function deleteImage(id, path) {
+    var removethis = "{{url('public/uploads/')}}"
+    var path = path.replace(removethis, "");
+    $.get("{{url('delete-image')}}" + path, function(data, status) {
+      $('#' + id).remove();
+    });
+  }
+
+  setTimeout(function() {
+    $("#removemessage").remove();
+  }, 6000);
+
+  function getVariantTemplate(index) {
+    var variant_html = `<div class="card-body">
+          <div class="row">
+            <div class="col-md-12">
+                <div class="row">
+                  <div class="col-md-2 form-group">
+                    <label>Primary Color Code</label>
+                    <select name="color_code[` + index + `]" class="form-control">
+                      <option value="">Select</option>
+                      @if(!empty($color_code))
+                      @foreach($color_code->items as $cc)
+                      <option value="{{$cc->label}}" >{{$cc->value->localized->en}}</option>
+                      @endforeach
+                      @endif
+                    </select>
+                </div>
+                <div class="col-md-2 form-group">
+                    <label>Article Variant ID</label>
+                    <input type="text" class="form-control" name="merchant_product_config_id[` + index + `]" value="">
+                </div>
+              </div>
+              <div class="new_sizes"></div>
+              <div class="text-center">
+                  <a href="javascript:void(0);" class="btn-primary btn addmoresize" data-index="` + index + `">Add  Size</a>
+              </div>
+              <br>
+              <div class="row">
+                  <div class="col-md-4 form-group">
+                    <label>Image</label>
+                    <input type="file" class="form-control" name="image[` + index + `][]" >
+                  </div>
+                  <div class="col-md-4 form-group">
+                    <label class="btn-block">Image Sort Key</label>
+                    <input type="hidden" name="old_image[` + index + `][]" value="">
+                    <input type="text" class="form-control" name="image_sort[` + index + `][]" required="" >
+                  </div>
+              </div>
+              <div class="new_images"></div>
+              <p class="mb-0"><strong>Recommended Dimensions: </strong> Width : 1524, Height : 2200</p>
+              <p ><strong>Required Dimensions: </strong> Min Width : 610, Min Height : 880, Max Width : 6000, Max Height : 9000 </p>
+              <div class="text-center">
+                  <a href="javascript:void(0);" class="btn-primary btn addmoreImage" data-index="` + index + `" >Add Image</a>
+              </div>
+              <div class="row">
+                  <div class="col-md-4 form-group">
+                    <label>Session </label>
+                    <select name="session_code[` + index + `]" class="form-control" required="">
+                        <option value="">Select</option>
+                        @if(!empty($sessions))
+                        @foreach($sessions->items as $s)
+                        <option value="{{$s->label}}">{{$s->value->localized->en}}</option>
+                        @endforeach
+                        @endif
+                    </select>
+                  </div>
+                  <div class="col-md-4 form-group">
+                    <label>Supplier Color</label>
+                    <input type="text" class="form-control" name="supplier_color[` + index + `]" required="" value="">
+                  </div>
+              </div>
+              @if(!isset($detail) && empty($detail->material))
+              <div class="row">
+                  <div class="col-md-4 form-group">
+                    <label>Material </label>
+                    <select name="material_code[` + index + `][]" class="form-control">
+                        <option value="">Select</option>
+                        @if(!empty($materials))
+                        @foreach($materials->items as $mi)
+                        <option value="{{$mi->label}}" >{{$mi->value->localized->en}}</option>
+                        @endforeach
+                        @endif
+                    </select>
+                  </div>
+                  <div class="col-md-4 form-group">
+                    <label>Material Percentage</label>
+                    <input type="number" step=".01" class="form-control" name="material_percentage[` + index + `][] "  placeholder="%"  value="">
+                  </div>
+              </div>
+              @endif
+              <div class="new_material"></div>
+              <div class="text-center">
+                  <a href="javascript:void(0);" class=" btn-primary btn addmore_material" data-index="` + index + `">Add Material</a>
+              </div>
+              <div class="form-group">
+                  <label>Body</label>
+                  <textarea name="body[` + index + `]" class="form-control editor"></textarea>
+              </div>
+            </div>
+        </div>`;
+    return variant_html;
+  }
+</script>
+@endpush

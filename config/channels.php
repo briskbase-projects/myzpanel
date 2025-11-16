@@ -1,0 +1,28 @@
+<?php
+return [
+  "de" => ["id" => "01924c48-49bb-40c2-9c32-ab582e6db6f4", "status" => true, 'country' => "DE", "currency" => "EUR"],
+  "nl" => ["id" => "00f2a393-6889-4fc0-8cd9-86e454e6dfa3", "status" => true, 'country' => "NL", "currency" => "EUR"],
+  "fr" => ["id" => "733af55a-4133-4d7c-b5f3-d64d42c135fe", "status" => true, 'country' => "FR", "currency" => "EUR"],
+  "it" => ["id" => "ebf57ebf-e26d-4ebd-8009-6ad519073d2a", "status" => true, 'country' => "IT", "currency" => "EUR"],
+  "at" => ["id" => "53075bd4-0205-4b5d-8145-e7a7745ab137", "status" => true, 'country' => "AT", "currency" => "EUR"],
+  "pl" => ["id" => "ca9d5f22-2a1b-4799-b3b7-83f47c191489", "status" => true, 'country' => "PL", "currency" => "PLN"],
+  "be" => ["id" => "043ec789-a3c7-4556-92df-bf1845c741ab", "status" => true, 'country' => "BE", "currency" => "EUR"],
+  "se" => ["id" => "091dcbdd-7839-4f39-aa05-324eb4599df0", "status" => false, 'country' => "SE", "currency" => "SEK"],
+  "fi" => ["id" => "aadd3adf-500f-4372-8137-dc0e4b2f0582", "status" => false, 'country' => "FI", "currency" => "EUR"],
+  "dk" => ["id" => "7ce94f55-7a4d-4416-95c1-bf34193a47e8", "status" => false, 'country' => "DK", "currency" => "DKK"],
+  "es" => ["id" => "1e161d6e-0427-4cfc-a357-e2b501188a15", "status" => false, 'country' => "ES", "currency" => "EUR"],
+  "ie" => ["id" => "a13a1960-5d57-4c51-a3ea-7e8d28e2c0b7", "status" => false, 'country' => "IE", "currency" => "EUR"],
+  "sk" => ["id" => "371e627a-2c44-4dbd-8e63-3344327a25c1", "status" => false, 'country' => "SK", "currency" => "EUR"],
+  "si" => ["id" => "b8949dea-af4e-42e7-8271-2e7b1bb123c5", "status" => false, 'country' => "SI", "currency" => "EUR"],
+  "lt" => ["id" => "8a46930c-01ec-4027-98fd-23d304f247d6", "status" => false, 'country' => "LT", "currency" => "EUR"],
+  "lv" => ["id" => "98478cb5-85f1-4775-a130-0b2413b1c4b8", "status" => false, 'country' => "LV", "currency" => "EUR"],
+  "ee" => ["id" => "3d334e1f-112a-427f-96ae-e31948ed5163", "status" => false, 'country' => "EE", "currency" => "EUR"],
+  "hr" => ["id" => "8be9fe4a-397a-4bfb-9d1b-cfe7d01caf91", "status" => false, 'country' => "HR", "currency" => "EUR"],
+  "uk" => ["id" => "83c4e87f-6819-41bb-af61-46cddb8453f5", "status" => false, 'country' => "UK", "currency" => "GBP"],
+  "no" => ["id" => "ef064ea7-1d91-442c-bcbb-9d20749af19b", "status" => false, 'country' => "NO", "currency" => "EUR"],
+  "pt" => ["id" => "5d99621e-7a9e-4393-8df3-1084ac3bb8a7", "status" => false, 'country' => "PT", "currency" => "EUR"],
+  "ch" => ["id" => "c2bd90da-0090-4751-8f16-35dea7002071", "status" => false, 'country' => "CH", "currency" => "EUR"],
+  "cz" => ["id" => "b773b421-c719-4dfd-afc8-e97da508a88d", "status" => false, 'country' => "CZ", "currency" => "CZK"],
+  "ro" => ["id" => "7fb9880f-de8d-4e56-bac1-5527da550a74", "status" => false, 'country' => "RO", "currency" => "RON"],
+  "hu" => ["id" => "4b8c533b-26b8-4c41-9a60-72a0df43d26f", "status" => false, 'country' => "HU", "currency" => "HUF"]
+];

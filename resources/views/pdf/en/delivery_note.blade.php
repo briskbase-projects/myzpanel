@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        body{
+            font-family: DejaVu Sans, Arial, sans-serif;font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+
+    <table width="100%">
+        <tr valign="top">
+            <td>
+                <img src="{{ env('CLIENT_LOGO') }}" alt="" width="100">
+                <h2 style="margin: 0;"><strong>Lieferschein</strong></h2>
+            </td>
+            <td align="right">
+                <img src="{{ url('images/zalando.png') }}" alt="" width="200">
+            </td>
+        </tr>
+        <tr>
+            <td width="50%">
+                <p>{{ $detail->attributes->shipping_address->first_name }} {{ $detail->attributes->shipping_address->last_name }}<br>
+                {{ $detail->attributes->shipping_address->address_line_1 }}<br>
+                {{ $detail->attributes->shipping_address->zip_code }} {{ $detail->attributes->shipping_address->city }}</p>
+            </td>
+            <td align="right" width="50%">
+                <table width="100%" style="border: 1px solid #ddd;" cellpadding="5">
+                    <tr>
+                        <th align="left">Kunden-Nr.:</th>
+                        <td>{{ $detail->attributes->customer_number }}</td>
+                    </tr>
+                    <tr>
+                        <th align="left">Bestell-Nr.:</th>
+                        <td>{{ $detail->attributes->order_number }}</td>
+                    </tr>
+                    <tr>
+                        <th align="left">Bestelldatum:</th>
+                        <td>{{ date('d.m.Y', strtotime($detail->attributes->order_date)) }}</td>
+                    </tr>
+                    <tr>
+                        <th align="left">Lieferscheindatum:</th>
+                        <td>{{ date('d.m.Y', strtotime($detail->attributes->order_date)) }}</td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+        <tr>
+            <td><br>
+                Übersicht deiner Bestellung             </td>
+        </tr>
+    </table>
+    <br>
+    <table width="100%" cellpadding="5">
+        
+        <tr style="border-bottom: 1px solid #000;" align="left">
+            <th width="15%">Zalando Art. Nr.</th>
+            <th width="15%">Händler Art. Nr.</th>
+            <th width="20%">Artikelbezeichnung</th>
+            <th width="10%">Größe</th>
+            <th width="10%">Menge</th>
+            <th width="15%">Einzelpreis</th>
+            <th width="15%">Gesamtpreis</th>
+        </tr>
+        <tr>
+            <td colspan="7" style="padding: 0;"><hr style="margin: 0;"></td>
+        </tr>
+        @foreach($included as $oi)
+        @if($oi->type == 'OrderItem')
+            @php
+            
+                $sizeTitle = $ean = $sku = "";
+                foreach($sizes as $size):
+                foreach($size as $sd):
+                    if($oi->attributes->external_id == $sd['sku']):
+                    $sizeTitle = $sd['title'];
+                    $ean = $sd['ean'];
+                    $sku = $sd['sku'];
+                    endif;
+                endforeach;
+                endforeach;
+            @endphp
+            <tr>
+                <td>{{ $oi->attributes->article_id }}</td>
+                <td>{{$sku}}</td>
+                <td>{{ $oi->attributes->description }}</td>
+                <td>({{$sizeTitle}})</td>
+                <td>{{ $oi->attributes->quantity_initial + $oi->attributes->quantity_reserved + $oi->attributes->quantity_shipped + $oi->attributes->quantity_returned + $oi->attributes->quantity_canceled  }}</td>
+                <td>@php
+                        $sum = 0;
+                    @endphp
+                @foreach($included as $line)
+                    @if($line->type == 'OrderLine' && $line->attributes->order_item_id == $oi->id)
+                    @php
+                    $sum = ($oi->attributes->quantity_initial + $oi->attributes->quantity_reserved + $oi->attributes->quantity_shipped + $oi->attributes->quantity_returned + $oi->attributes->quantity_canceled) * $line->attributes->price->amount;
+                    @endphp
+                    {{ $line->attributes->price->amount }} {{ $line->attributes->price->currency }}
+                    @endif
+                @endforeach</td>
+                <td>{{ $sum }}</td>
+            </tr>
+            @endif
+            @endforeach
+        <tr>
+            <td colspan="7" style="padding: 0;"><hr style="margin: 0;"></td>
+        </tr>
+        
+        <tr>
+            <td align="right" colspan="6"><strong>Gesamtbetrag EUR</strong></td>
+            <td><strong>{{ $detail->attributes->order_lines_price_amount }} {{ $detail->attributes->order_lines_price_currency }}</strong></td>
+        </tr>
+    </table>
+    <br>
+    
+    <table width="100%">
+        <tr>
+            <td>
+                <p><strong>Hinweis:</strong> Solltest du die Zahlart Rechnung gewählt haben, ist dir von Zalando bereits die
+                    Bestellbestätigung mit dem Verweis auf den zu zahlenden Gesamtbetrag per E-Mail zugestellt worden.</p>
+                <p>Hast du noch Fragen zu deiner Bestellung? Besuche unsere Hilfeseiten unter www.zalando.de/faq -
+                    darüber kannst du uns auch kontaktieren.</p>
+                <p>Bitte behandle die Ware sorgsam, da diese bei Nichtgefallen nur ungetragen und unbeschädigt
+                    retourniert werden kann</p>
+            </td>
+        </tr>
+    </table>
+    <br>
+    <table width="100%">
+        <tr>
+            <td colspan="3" style="padding: 0;"><br><br><hr style="margin: 0;"></td>
+        </tr>
+        <tr valign="top">
+            <td>
+                {{ env('ZALANDO_BRAND_NAME') }} <br>
+                {{env('ZCLIENT_COMPANY_NAME')}}  <br>
+                {{env('ZCLIENT_ADDRESS')}} <br>
+                {{env('ZCLIENT_ZIPCODE')}} {{env('ZCLIENT_CITY')}} <br>
+                Geschäftsführer : {{env('ZCLIENT_NAME')}}, USt-ID Nr. : {{env('ZUST_ID')}}
+            </td>
+            <td>
+                <strong>Im Auftrag von:</strong> <br>
+                Zalando SE <br>
+                Valeska-Gert-Straße 5 <br>
+                10243 Berlin
+            </td>
+            <td>
+                <strong>Bankverbindung:</strong>  <br>
+                Empfänger: Zalando Payments  <br>
+                GmbH  <br>
+                IBAN: {{ config('bank')[$country]['IBAN']??"" }}  <br>
+                BIC: {{ config('bank')[$country]['BIC']??"" }}  <br>
+                Verwendungszweck: Bestellnummer
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
