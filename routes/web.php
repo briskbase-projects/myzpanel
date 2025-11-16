@@ -61,6 +61,7 @@ Route::get('/line-item-status/{orderId}/{itemId}/{lineId}/{status}', 'OrderContr
 // Route::get('print-return-slip/{id}',array('as'=>'print-return-slip','uses'=>'OrderController@printReturnSlip'));
 
 Route::post('/save-product', 'ProductController@saveProduct')->name('save-product');
+Route::get('/get-outline-attributes/{outline}', 'ProductController@getOutlineAttributes')->name('get-outline-attributes');
 Route::post('/webhook/woocommerce', 'OrderController@handleWooCommerceWebhook');
 Route::get('/woocommerce/test', 'WebhookController@testWoocommerce');
 

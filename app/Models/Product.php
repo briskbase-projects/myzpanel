@@ -18,7 +18,8 @@ class Product extends Model
         'zalando_prices' => 'array',
         'target_genders' => 'array',
         'target_age_groups' => 'array',
-        'image' => 'array'
+        'image' => 'array',
+        'required_attributes' => 'array'
     ];
 
     public function errors()

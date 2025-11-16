@@ -60,6 +60,143 @@ class ProductController extends Controller
     return view('edit-product', $data);
   }
 
+  public function getOutlineAttributes($outline)
+  {
+    try {
+      // Fetch outline details from Zalando API
+      $outlineDetails = $this->getOutlineDetails($outline);
+
+      // Log the raw response for debugging
+      \Log::info('Outline API Response:', ['outline' => $outline, 'response' => $outlineDetails]);
+
+      if (!$outlineDetails || isset($outlineDetails->code)) {
+        return response()->json([
+          'success' => false,
+          'message' => 'Failed to fetch outline details',
+          'debug' => $outlineDetails
+        ], 400);
+      }
+
+      $requiredAttributes = [];
+
+      // Parse outline response structure: tiers -> config -> mandatory_types
+      if (isset($outlineDetails->tiers->config->mandatory_types)) {
+        $mandatoryTypes = $outlineDetails->tiers->config->mandatory_types;
+        $validationHints = isset($outlineDetails->tiers->config->validation_hints)
+          ? $outlineDetails->tiers->config->validation_hints
+          : null;
+
+        foreach ($mandatoryTypes as $attrName) {
+          // Get proper label/description for the attribute
+          $label = $attrName;
+          $description = '';
+          $hint_type = 'mandatory';
+
+          // Try to get description from validation_hints
+          if ($validationHints && isset($validationHints->{$attrName})) {
+            $hint = $validationHints->{$attrName};
+            if (isset($hint->description->en)) {
+              $description = $hint->description->en;
+            }
+            if (isset($hint->hint_type)) {
+              $hint_type = $hint->hint_type;
+            }
+          }
+
+          // Format the attribute name for display
+          $displayName = str_replace(['material.', 'color_code.', '_', '.'], ['', '', ' ', ' '], $attrName);
+          $displayName = ucwords($displayName);
+
+          // Skip fields that are already in the main form
+          $skipFields = [
+            'media',
+            'description',
+            'color_code.primary',  // Already in form as Primary Color Code
+            'session_code',        // Already in form as Session Code
+            'season_code',         // Already in form as Season Code (alternative spelling)
+            'supplier_color'       // Already in form as Supplier Color
+          ];
+
+          if (in_array($attrName, $skipFields)) {
+            continue;
+          }
+
+          // Determine attribute type
+          $attrType = 'text'; // default
+          if (strpos($attrName, 'material.') === 0) {
+            $attrType = 'material_array';
+          } elseif (strpos($attrName, 'color_code.') === 0) {
+            $attrType = 'color';
+          }
+
+          $requiredAttributes[] = [
+            'name' => $attrName,
+            'label' => $displayName,
+            'description' => $description,
+            'type' => $attrType,
+            'hint_type' => $hint_type,
+            'tier' => 'config',
+            'required' => true
+          ];
+        }
+      }
+
+      // Also check model tier for required attributes
+      if (isset($outlineDetails->tiers->model->mandatory_types)) {
+        $modelMandatoryTypes = $outlineDetails->tiers->model->mandatory_types;
+
+        foreach ($modelMandatoryTypes as $attrName) {
+          // Skip already handled attributes
+          if (in_array($attrName, ['name', 'brand_code', 'size_group', 'target_age_groups', 'target_genders'])) {
+            continue; // These are already in the form
+          }
+
+          // Format the attribute name for display
+          $displayName = str_replace(['_', '.'], [' ', ' '], $attrName);
+          $displayName = ucwords($displayName);
+
+          // Determine attribute type
+          $attrType = 'text';
+          if (strpos($attrName, 'material.') === 0) {
+            $attrType = 'material_array';
+          }
+
+          $requiredAttributes[] = [
+            'name' => $attrName,
+            'label' => $displayName,
+            'description' => '',
+            'type' => $attrType,
+            'hint_type' => 'mandatory',
+            'tier' => 'model',
+            'required' => true
+          ];
+        }
+      }
+
+      // Log parsed attributes
+      \Log::info('Parsed Required Attributes:', ['attributes' => $requiredAttributes]);
+
+      return response()->json([
+        'success' => true,
+        'attributes' => $requiredAttributes,
+        'total' => count($requiredAttributes),
+        'outline' => $outline
+      ]);
+    } catch (\Exception $e) {
+      \Log::error('Error in getOutlineAttributes:', [
+        'outline' => $outline,
+        'error' => $e->getMessage(),
+        'trace' => $e->getTraceAsString()
+      ]);
+
+      return response()->json([
+        'success' => false,
+        'message' => $e->getMessage(),
+        'error_line' => $e->getLine()
+      ], 500);
+    }
+  }
+
   public function ReSubmit($id, Request $r)
   {
 
@@ -68,6 +205,8 @@ class ProductController extends Controller
     $products = Product::where("id", $id)->orWhere("parent_id", $id)->get();
 
     $responseTxt = "";
+    $hasErrors = false;
+
     foreach ($products as $p) {
       $already = false;
       foreach ($p->zalando_sizes as $key => $v) {
@@ -80,18 +219,44 @@ class ProductController extends Controller
         $response = $this->productSumission($p, $token);
       }
 
+      // Check if the API response contains errors
+      if (isset($response->code) && !empty($response->code)) {
+        $hasErrors = true;
+
+        // Log the error response
+        \Log::error('Zalando API Error:', [
+          'product_id' => $p->id,
+          'response' => $response
+        ]);
+
+        // Build error message for user (errors already saved by productSumission)
+        if (isset($response->body_errors) && is_array($response->body_errors)) {
+          $errorCount = count($response->body_errors);
+          $responseTxt .= "Product '{$p->title}' (ID: {$p->id}) failed validation with {$errorCount} error(s). ";
+        } else {
+          // Single error without body_errors
+          $responseTxt .= "Product '{$p->title}' (ID: {$p->id}) failed: {$response->detail}. ";
+        }
+
+        // Skip stock update if submission failed
+        continue;
+      }
+
+      // Only update stock if submission was successful
       $failed = $this->updateProductStock($p, $response, $already);
 
       if (count($failed)) {
-        $responseTxt .= "Stock not pushed for the following products" . implode(", ", $failed);
+        $hasErrors = true;
+        $responseTxt .= "Stock not pushed for product '{$p->title}' (ID: {$p->id}). ";
         continue;
       }
     }
-    dd($response);
-    if (empty($responseTxt)) {
-      return redirect()->to('products?message=Product has been pushed successfully');
+
+    if ($hasErrors || !empty($responseTxt)) {
+      return redirect()->to('products?errorMessage=' . urlencode($responseTxt));
     }
-    return redirect()->to('products?errorMessage=' . $responseTxt);
+
+    return redirect()->to('products?message=Product has been pushed successfully');
   }
 
   private function updateProductStock($p, $response, $isUpdate)
@@ -217,10 +382,13 @@ class ProductController extends Controller
           }
         }
 
+        // Old material field (only if still present in request - kept for backward compatibility)
         $material = array();
-        foreach ($r->material_code[$ind] as $key => $code) {
-          $material[$key]['material_code'] = $code;
-          $material[$key]['material_percentage'] = $r->material_percentage[$ind][$key];
+        if (!empty($r->material_code[$ind])) {
+          foreach ($r->material_code[$ind] as $key => $code) {
+            $material[$key]['material_code'] = $code;
+            $material[$key]['material_percentage'] = $r->material_percentage[$ind][$key];
+          }
         }
 
         $images = array();
@@ -273,6 +441,41 @@ class ProductController extends Controller
         $product->material = $material;
         $product->body_html = $r->body[$ind];
 
+        // Save required attributes (handles material_array, color, and text types)
+        $required_attributes = array();
+        if (!empty($r->required_attr_name[$ind])) {
+          foreach ($r->required_attr_name[$ind] as $key => $attr_name) {
+            if (!empty($attr_name) && isset($r->required_attr_value[$ind][$attr_name])) {
+              // Get attribute type
+              $attr_type = $r->required_attr_type[$ind][$attr_name] ?? 'text';
+
+              if ($attr_type === 'material_array') {
+                // Handle material array type
+                $attr_materials = [];
+                if (is_array($r->required_attr_value[$ind][$attr_name])) {
+                  foreach ($r->required_attr_value[$ind][$attr_name] as $mat_key => $mat_value) {
+                    if (!empty($mat_value['material_code'])) {
+                      $attr_materials[] = [
+                        'material_code' => $mat_value['material_code'],
+                        'material_percentage' => $mat_value['material_percentage'] ?? 0
+                      ];
+                    }
+                  }
+                }
+                if (!empty($attr_materials)) {
+                  $required_attributes[$attr_name] = $attr_materials;
+                }
+              } else {
+                // Handle color and text types (simple string values)
+                $attr_value = $r->required_attr_value[$ind][$attr_name];
+                if (!empty($attr_value)) {
+                  $required_attributes[$attr_name] = $attr_value;
+                }
+              }
+            }
+          }
+        }
+        $product->required_attributes = $required_attributes;
 
         $saved = $product->save();
         if ($ind == 0) {
@@ -349,14 +552,33 @@ class ProductController extends Controller
     $checkresponse = $this->postZalandoProduct($fields);
 
     if (isset($checkresponse->code) && !empty($checkresponse->code)) {
-      $error = new ProductError;
-      $error->ean = '*';
-      $error->status_code = $checkresponse->code;
-      $error->message = $checkresponse->detail;
-      $error->detail = $checkresponse->detail;
-      $error->type = $checkresponse->title;
-      $error->shopify_products_id = $p->id;
-      $error->save();
+      // Delete existing errors for this product
+      ProductError::where('shopify_products_id', $p->id)->delete();
+
+      // Handle body_errors array if present (detailed validation errors)
+      if (isset($checkresponse->body_errors) && is_array($checkresponse->body_errors)) {
+        // Create error record for each validation error
+        foreach ($checkresponse->body_errors as $bodyError) {
+          $error = new ProductError;
+          $error->ean = $bodyError->ean ?? '*';
+          $error->status_code = $checkresponse->status ?? $checkresponse->code;
+          $error->message = $bodyError->message ?? $checkresponse->detail;
+          $error->detail = $bodyError->detail ?? $checkresponse->detail;
+          $error->type = $bodyError->type ?? $checkresponse->title;
+          $error->shopify_products_id = $p->id;
+          $error->save();
+        }
+      } else {
+        // Single error without body_errors array
+        $error = new ProductError;
+        $error->ean = '*';
+        $error->status_code = $checkresponse->code;
+        $error->message = $checkresponse->detail;
+        $error->detail = $checkresponse->detail;
+        $error->type = $checkresponse->title;
+        $error->shopify_products_id = $p->id;
+        $error->save();
+      }
     }
 
     return $checkresponse;
@@ -377,10 +599,13 @@ class ProductController extends Controller
         "description":{
           "en": "<div>' . $body_html . '</div>",
           "de": "<div>' . $body_html . '</div>"
-        },
-        "material.upper_material_clothing":[';
-    if (!empty($p->material)) {
+        },';
 
+    // Add old material field only if it exists and material.upper_material_clothing is NOT in required_attributes
+    $hasUpperMaterialInRequired = !empty($p->required_attributes) && isset($p->required_attributes['material.upper_material_clothing']);
+
+    if (!empty($p->material) && !$hasUpperMaterialInRequired) {
+      $json .= '"material.upper_material_clothing":[';
       foreach ($p->material as $key => $m) {
         $json .= ' {
                   "material_code":"' . $m["material_code"] . '",
@@ -388,9 +613,36 @@ class ProductController extends Controller
                   },';
       }
       $json = rtrim($json, ',');
+      $json .= '],';
     }
-    $json .= '    ],
-              "media":[
+
+    // Add required attributes (handles material_array, color, and text types)
+    if (!empty($p->required_attributes)) {
+      foreach ($p->required_attributes as $attr_name => $attr_value) {
+        if (!empty($attr_value)) {
+          // Check if it's a material array (array of objects with material_code)
+          if (is_array($attr_value) && isset($attr_value[0]) && is_array($attr_value[0]) && isset($attr_value[0]['material_code'])) {
+            // Material array type
+            $json .= '"' . $attr_name . '":[';
+            foreach ($attr_value as $material) {
+              if (!empty($material['material_code'])) {
+                $json .= '{
+                  "material_code":"' . $material["material_code"] . '",
+                  "material_percentage":' . ($material["material_percentage"] ?? 0) . '
+                },';
+              }
+            }
+            $json = rtrim($json, ',');
+            $json .= '],';
+          } else {
+            // Color or text type (simple string value)
+            $json .= '"' . $attr_name . '":"' . addslashes($attr_value) . '",';
+          }
+        }
+      }
+    }
+
+    $json .= '"media":[
               ';
     if (!empty($p->zalando_images)) {
 

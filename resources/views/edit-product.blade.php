@@ -6,6 +6,95 @@
    margin-bottom: 20px;
    padding-top: 20px;
    }
+
+   /* Required Attributes Styling */
+   .required-attr-section {
+     background: #f8f9fa;
+     border: 1px solid #dee2e6;
+     border-radius: 8px;
+     padding: 15px;
+     margin-bottom: 15px;
+   }
+
+   .required-attr-section h6 {
+     color: #495057;
+     font-weight: 600;
+     margin-bottom: 10px;
+     padding-bottom: 8px;
+     border-bottom: 2px solid #007bff;
+     font-size: 14px;
+   }
+
+   .required-attr-section .expended_html {
+     background: white;
+     border-radius: 5px;
+     padding: 10px;
+     margin-bottom: 8px;
+     border-left: 3px solid #007bff;
+   }
+
+   .percentage-total {
+     text-align: center;
+     border-radius: 5px;
+     font-size: 13px;
+     padding: 8px 10px;
+     margin: 8px 0;
+   }
+
+   .percentage-total.alert-success {
+     background-color: #d4edda;
+     border-color: #c3e6cb;
+     color: #155724;
+   }
+
+   .percentage-total.alert-danger {
+     background-color: #f8d7da;
+     border-color: #f5c6cb;
+     color: #721c24;
+   }
+
+   .percentage-total.alert-warning {
+     background-color: #fff3cd;
+     border-color: #ffeaa7;
+     color: #856404;
+   }
+
+   .material-select {
+     border: 1px solid #ced4da;
+     font-size: 13px;
+     padding: 6px 10px;
+   }
+
+   .material-percentage {
+     border: 1px solid #ced4da;
+     font-size: 13px;
+     padding: 6px 10px;
+   }
+
+   .material-select:focus,
+   .material-percentage:focus {
+     border-color: #007bff;
+     box-shadow: 0 0 0 0.15rem rgba(0,123,255,.15);
+   }
+
+   .required-attr-section .form-group {
+     margin-bottom: 8px;
+   }
+
+   .required-attr-section label {
+     font-size: 12px;
+     font-weight: 500;
+     margin-bottom: 4px;
+   }
+
+   .required-attr-section .btn-sm {
+     font-size: 12px;
+     padding: 4px 10px;
+   }
+
+   .required-attr-section .text-center {
+     margin-top: 8px;
+   }
    .remove-variant {
     color: #Fff;
     text-decoration: underline;
@@ -275,33 +364,106 @@
                     <input type="text" class="form-control" name="supplier_color[0]" required="" value="{{!empty($detail->supplier_color)?$detail->supplier_color:'white'}}">
                   </div>
               </div>
-              @if(isset($detail) && !empty($detail->material))
-              @foreach($detail->material as $m)
-              <div class="expended_html">
-                <div class="row">
-                  <div class="col-md-4 form-group">
-                    <label>Material </label>
-                    <select name="material_code[0][]" class="form-control">
-                      <option value="">Select</option>
-                      @if(!empty($materials))
-                        @foreach($materials->items as $mi)
-                        <option value="{{$mi->label}}" {{$m["material_code"] == $mi->label?"selected":""}}>{{$mi->value->localized->en}}</option>
+
+              <!-- Required Attributes Section -->
+              <hr>
+              <h5>Required Attributes (Outline-specific Material Fields)
+                <span class="badge badge-info" id="loading_attrs_0" style="display:none;">Loading...</span>
+              </h5>
+              <div id="required_attributes_container_0" class="row">
+                @if(isset($detail) && !empty($detail->required_attributes))
+                  @foreach($detail->required_attributes as $attr_name => $attr_value)
+                    @php
+                      // Determine attribute type based on value structure
+                      $is_material_array = is_array($attr_value) && isset($attr_value[0]) && is_array($attr_value[0]) && isset($attr_value[0]['material_code']);
+                      $attr_type = $is_material_array ? 'material_array' : 'text';
+                      $attr_display_name = str_replace(['material.', 'color_code.', '_'], ['', '', ' '], $attr_name);
+                    @endphp
+
+                    @if($is_material_array)
+                      {{-- Material array type --}}
+                      <div class="required-attr-section col-md-6" data-attr-name="{{$attr_name}}" data-attr-type="material_array">
+                        <h6>{{$attr_display_name}}</h6>
+                        <input type="hidden" name="required_attr_name[0][]" value="{{$attr_name}}">
+                        <input type="hidden" name="required_attr_type[0][{{$attr_name}}]" value="material_array">
+                        @foreach($attr_value as $attr_key => $attr_val)
+                          <div class="expended_html">
+                            <div class="row">
+                              <div class="col-md-6 form-group">
+                                <label>Material</label>
+                                <select name="required_attr_value[0][{{$attr_name}}][{{$attr_key}}][material_code]" class="form-control">
+                                  <option value="">Select</option>
+                                  @if(!empty($materials))
+                                    @foreach($materials->items as $mi)
+                                      <option value="{{$mi->label}}" {{$attr_val["material_code"] == $mi->label?"selected":""}}>{{$mi->value->localized->en}}</option>
+                                    @endforeach
+                                  @endif
+                                </select>
+                              </div>
+                              <div class="col-md-6 form-group">
+                                <label class="btn-block">Material Percentage <a href="javascript:;" class="removeNo btn-danger btn-sm btn-xs pull-right" style="margin-bottom:5px;"> &times;</a></label>
+                                <input type="number" step=".01" class="form-control material-percentage" name="required_attr_value[0][{{$attr_name}}][{{$attr_key}}][material_percentage]" placeholder="%" value="{{$attr_val["material_percentage"]}}" min="0" max="100">
+                              </div>
+                            </div>
+                          </div>
                         @endforeach
-                        @endif
-                      </select>
-                    </div>
-                    <div class="col-md-4 form-group">
-                      <label>Material Percentage</label>
-                      <input type="number" step=".01" class="form-control" name="material_percentage[0][] "  placeholder="%"  value="{{$m["material_percentage"]}}">
-                    </div>
-                  </div>
+                        <div class="new_required_attr_material"></div>
+                        @php
+                          $total_percentage = 0;
+                          foreach($attr_value as $mat) {
+                            $total_percentage += $mat['material_percentage'] ?? 0;
+                          }
+                          $alert_class = 'alert-info';
+                          if ($total_percentage == 100) {
+                            $alert_class = 'alert-success';
+                          } elseif ($total_percentage > 95 && $total_percentage < 105) {
+                            $alert_class = 'alert-warning';
+                          } else {
+                            $alert_class = 'alert-danger';
+                          }
+                        @endphp
+                        <div class="percentage-total alert {{$alert_class}}">
+                          <strong>Total: <span class="total-value">{{$total_percentage}}</span>%</strong> (Should be 100%)
+                        </div>
+                        <div class="text-center">
+                          <a href="javascript:void(0);" class="btn-sm btn-info addmore_required_attr" data-index="0" data-attr-name="{{$attr_name}}">Add Material for {{$attr_display_name}}</a>
+                        </div>
+                        <br>
+                      </div>
+                    @elseif(strpos($attr_name, 'color_code.') === 0)
+                      {{-- Color type --}}
+                      <div class="required-attr-section col-md-6" data-attr-name="{{$attr_name}}" data-attr-type="color">
+                        <h6>{{$attr_display_name}}</h6>
+                        <input type="hidden" name="required_attr_name[0][]" value="{{$attr_name}}">
+                        <input type="hidden" name="required_attr_type[0][{{$attr_name}}]" value="color">
+                        <div class="form-group">
+                          <label>Color Code</label>
+                          <select name="required_attr_value[0][{{$attr_name}}]" class="form-control" required>
+                            <option value="">Select Color</option>
+                            @if(!empty($color_code))
+                              @foreach($color_code->items as $cc)
+                                <option value="{{$cc->label}}" {{$attr_value == $cc->label ? 'selected' : ''}}>{{$cc->value->localized->en}}</option>
+                              @endforeach
+                            @endif
+                          </select>
+                        </div>
+                      </div>
+                    @else
+                      {{-- Text type --}}
+                      <div class="required-attr-section col-md-6" data-attr-name="{{$attr_name}}" data-attr-type="text">
+                        <h6>{{$attr_display_name}}</h6>
+                        <input type="hidden" name="required_attr_name[0][]" value="{{$attr_name}}">
+                        <input type="hidden" name="required_attr_type[0][{{$attr_name}}]" value="text">
+                        <div class="form-group">
+                          <label>Value</label>
+                          <input type="text" name="required_attr_value[0][{{$attr_name}}]" class="form-control" value="{{$attr_value}}" required>
+                        </div>
+                      </div>
+                    @endif
+                  @endforeach
+                @endif
               </div>
-              @endforeach
-              @endif
-              <div class="new_material"></div>
-              <div class="text-center">
-                  <a href="javascript:void(0);" class="btn-primary btn addmore_material" data-index="0">Add Material</a>
-              </div>
+
               <div class="form-group">
                   <label>Body</label>
                   <textarea name="body[0]" class="form-control editor">{{isset($detail)?$detail->body_html:''}}</textarea>
@@ -463,33 +625,50 @@
                     <input type="text" class="form-control" name="supplier_color[{{$ind}}]" required="" value="{{!empty($v->supplier_color)?$v->supplier_color:'white'}}">
                   </div>
               </div>
-              @if(isset($v) && !empty($v->material))
-              @foreach($v->material as $m)
-              <div class="expended_html">
-                <div class="row">
-                  <div class="col-md-4 form-group">
-                    <label>Material </label>
-                    <select name="material_code[{{$ind}}][]" class="form-control">
-                      <option value="">Select</option>
-                      @if(!empty($materials))
-                        @foreach($materials->items as $mi)
-                        <option value="{{$mi->label}}" {{$m["material_code"] == $mi->label?"selected":""}}>{{$mi->value->localized->en}}</option>
-                        @endforeach
-                        @endif
-                      </select>
+
+              <!-- Required Attributes Section for Variants -->
+              <hr>
+              <h5>Required Attributes (Outline-specific Fields)</h5>
+              <div id="required_attributes_container_{{$ind}}">
+                @if(isset($v) && !empty($v->required_attributes))
+                  @foreach($v->required_attributes as $attr_name => $attr_values)
+                    <div class="required-attr-section" data-attr-name="{{$attr_name}}">
+                      <h6>{{str_replace('material.', '', $attr_name)}}</h6>
+                      <input type="hidden" name="required_attr_name[{{$ind}}][]" value="{{$attr_name}}">
+                      @foreach($attr_values as $attr_key => $attr_val)
+                        <div class="expended_html">
+                          <div class="row">
+                            <div class="col-md-4 form-group">
+                              <label>Material</label>
+                              <select name="required_attr_value[{{$ind}}][{{$attr_name}}][{{$attr_key}}][material_code]" class="form-control">
+                                <option value="">Select</option>
+                                @if(!empty($materials))
+                                  @foreach($materials->items as $mi)
+                                    <option value="{{$mi->label}}" {{$attr_val["material_code"] == $mi->label?"selected":""}}>{{$mi->value->localized->en}}</option>
+                                  @endforeach
+                                @endif
+                              </select>
+                            </div>
+                            <div class="col-md-4 form-group">
+                              <label class="btn-block">Material Percentage <a href="javascript:;" class="removeNo btn-danger btn-sm btn-xs pull-right" style="margin-bottom:5px;"> &times;</a></label>
+                              <input type="number" step=".01" class="form-control" name="required_attr_value[{{$ind}}][{{$attr_name}}][{{$attr_key}}][material_percentage]" placeholder="%" value="{{$attr_val["material_percentage"]}}">
+                            </div>
+                          </div>
+                        </div>
+                      @endforeach
+                      <div class="new_required_attr_material"></div>
+                      <div class="text-center">
+                        <a href="javascript:void(0);" class="btn-sm btn-info addmore_required_attr" data-index="{{$ind}}" data-attr-name="{{$attr_name}}">Add Material for {{str_replace('material.', '', $attr_name)}}</a>
+                      </div>
+                      <br>
                     </div>
-                    <div class="col-md-4 form-group">
-                      <label>Material Percentage</label>
-                      <input type="number" step=".01" class="form-control" name="material_percentage[{{$ind}}][] "  placeholder="%"  value="{{$m["material_percentage"]}}">
-                    </div>
-                  </div>
+                  @endforeach
+                @endif
               </div>
-              @endforeach
-              @endif
-              <div class="new_material"></div>
               <div class="text-center">
-                  <a href="javascript:void(0);" class="btn-primary btn addmore_material" data-index="{{$ind}}">Add Material</a>
+                <a href="javascript:void(0);" class="btn-success btn add_required_attr_section" data-index="{{$ind}}">Add Required Attribute</a>
               </div>
+
               <div class="form-group">
                   <label>Body</label>
                   <textarea name="body[{{$ind}}]" class="form-control editor">{{isset($v)?$v->body_html:''}}</textarea>
@@ -526,7 +705,12 @@
       $(this).closest("form").get(0).submit();
     })
      $('.myselect').select2();
-        
+
+     // Load required attributes on page load if outline is already selected
+     var initialOutline = $('#outline').val();
+     if (initialOutline && !$('#required_attributes_container_0 .required-attr-section').length) {
+       loadRequiredAttributes(initialOutline, 0);
+     }
    });
 </script>
 <!-- <script  type="text/javascript" src="https://cdn.ckeditor.com/4.14.1/standard/ckeditor.js"></script> -->
@@ -559,50 +743,10 @@
         </div>`
         index++;
         $("#append-variant").append(variantTemplate);
-      })   
-   
+      })
+
       // CKEDITOR.replace( 'body' );
-       var count = 2;
-       $(document).on("click", ".addmore_material", function() {
-        var index = $(this).attr("data-index");
-         var number_html = '<div class="expended_html">  <div class="row">\
-                  <div class="col-md-4 form-group">\
-                   <label>Material </label>\
-                   <select name="material_code['+index+'][]" class="form-control">\
-                     <option value="">Select</option>\
-                     @if(!empty($materials))\
-                     @foreach($materials->items as $mi)\
-                     <option value="{{$mi->label}}" >{{$mi->value->localized->en}}</option>\
-                     @endforeach\
-                     @endif\
-                    </select>\
-                 </div>\
-                 <div class="col-md-4 form-group">\
-                   <label class="btn-block">Material Percentage <a href="javascript:;" class="removeNo  btn-danger btn-sm btn-xs pull-right" style="margin-bottom:5px;" > &times;</a></label>\
-                   <input type="number" step=".01" class="form-control" name="material_percentage['+index+'][] "  placeholder="%"  value="">\
-                 </div>\
-               </div>\
-         </div>';
-          $(this).parent().prev().append(number_html);
-        //  $(".new_material").append(number_html);
-   
-         count++;
-   
-         $(document).on("click",".removeNo",function() {
-           $(this).closest('.expended_html').remove();
-           count--;
-   
-           $(".addmore_material").show();
-         });
-       });
-   
-       $(document).on("click",".removeNo",function() {
-         $(this).closest('.expended_html').remove();
-         $(".addmore_material").show();
-       });
-   
-   
-          var count = 1;
+      var count = 1;
        $(document).on("click", ".addmoreImage", function() {
         var index = $(this).attr("data-index");
          var number_html =
@@ -774,28 +918,11 @@
                     <input type="text" class="form-control" name="supplier_color[`+index+`]" required="" value="">
                   </div>
               </div>
-              @if(!isset($detail) && empty($detail->material))
-              <div class="row">
-                  <div class="col-md-4 form-group">
-                    <label>Material </label>
-                    <select name="material_code[`+index+`][]" class="form-control">
-                        <option value="">Select</option>
-                        @if(!empty($materials))
-                        @foreach($materials->items as $mi)
-                        <option value="{{$mi->label}}" >{{$mi->value->localized->en}}</option>
-                        @endforeach
-                        @endif
-                    </select>
-                  </div>
-                  <div class="col-md-4 form-group">
-                    <label>Material Percentage</label>
-                    <input type="number" step=".01" class="form-control" name="material_percentage[`+index+`][] "  placeholder="%"  value="">
-                  </div>
-              </div>
-              @endif
-              <div class="new_material"></div>
+              <hr>
+              <h5>Required Attributes (Outline-specific Material Fields)</h5>
+              <div id="required_attributes_container_`+index+`"></div>
               <div class="text-center">
-                  <a href="javascript:void(0);" class=" btn-primary btn addmore_material" data-index="`+index+`">Add Material</a>
+                <a href="javascript:void(0);" class="btn-success btn add_required_attr_section" data-index="`+index+`">Add Required Attribute</a>
               </div>
               <div class="form-group">
                   <label>Body</label>
@@ -805,5 +932,232 @@
         </div>`;
         return variant_html;
    }
+
+   // Automatically load required attributes when outline changes
+   $(document).on("change", "#outline", function() {
+     var outlineValue = $(this).val();
+     if (outlineValue) {
+       loadRequiredAttributes(outlineValue, 0);
+     }
+   });
+
+   // Function to load required attributes from API
+   function loadRequiredAttributes(outline, index) {
+     $('#loading_attrs_' + index).show();
+
+     $.ajax({
+       url: "{{ url('/get-outline-attributes') }}/" + outline,
+       type: 'GET',
+       success: function(response) {
+        
+         $('#loading_attrs_' + index).hide();
+
+         if (response.success) {
+           if (response.attributes && response.attributes.length > 0) {
+             // Clear existing attributes
+             $('#required_attributes_container_' + index).empty();
+
+             // Add each required attribute
+             response.attributes.forEach(function(attr) {
+               var attr_display_name = attr.label || attr.name.replace('material.', '').replace(/_/g, ' ');
+
+               var attr_html = '';
+
+               // Generate different HTML based on attribute type
+               if (attr.type === 'material_array') {
+                 // Material array type - show material dropdowns
+                 attr_html = '<div class="required-attr-section col-md-6" data-attr-name="' + attr.name + '" data-attr-type="material_array">\
+                   <h6>' + attr_display_name + (attr.description ? ' <small class="text-muted">(' + attr.description + ')</small>' : '') + '</h6>\
+                   <input type="hidden" name="required_attr_name[' + index + '][]" value="' + attr.name + '">\
+                   <input type="hidden" name="required_attr_type[' + index + '][' + attr.name + ']" value="material_array">\
+                   <div class="new_required_attr_material"></div>\
+                   <div class="text-center">\
+                     <a href="javascript:void(0);" class="btn-sm btn-info addmore_required_attr" data-index="' + index + '" data-attr-name="' + attr.name + '">Add Material for ' + attr_display_name + '</a>\
+                   </div>\
+                 </div>';
+               } else if (attr.type === 'color') {
+                 // Color type - show color dropdown
+                 attr_html = '<div class="required-attr-section col-md-6" data-attr-name="' + attr.name + '" data-attr-type="color">\
+                   <h6>' + attr_display_name + (attr.description ? ' <small class="text-muted">(' + attr.description + ')</small>' : '') + '</h6>\
+                   <input type="hidden" name="required_attr_name[' + index + '][]" value="' + attr.name + '">\
+                   <input type="hidden" name="required_attr_type[' + index + '][' + attr.name + ']" value="color">\
+                   <div class="form-group">\
+                     <label>Color Code</label>\
+                     <select name="required_attr_value[' + index + '][' + attr.name + ']" class="form-control" required>\
+                       <option value="">Select Color</option>\
+                       @if(!empty($color_code))\
+                       @foreach($color_code->items as $cc)\
+                       <option value="{{$cc->label}}">{{$cc->value->localized->en}}</option>\
+                       @endforeach\
+                       @endif\
+                     </select>\
+                   </div>\
+                 </div>';
+               } else {
+                 // Text type - show simple text input
+                 attr_html = '<div class="required-attr-section col-md-6" data-attr-name="' + attr.name + '" data-attr-type="text">\
+                   <h6>' + attr_display_name + (attr.description ? ' <small class="text-muted">(' + attr.description + ')</small>' : '') + '</h6>\
+                   <input type="hidden" name="required_attr_name[' + index + '][]" value="' + attr.name + '">\
+                   <input type="hidden" name="required_attr_type[' + index + '][' + attr.name + ']" value="text">\
+                   <div class="form-group">\
+                     <label>Value</label>\
+                     <input type="text" name="required_attr_value[' + index + '][' + attr.name + ']" class="form-control" required>\
+                   </div>\
+                 </div>';
+               }
+
+               $('#required_attributes_container_' + index).append(attr_html);
+             });
+           } else {
+            
+             $('#required_attributes_container_' + index).html('<p class="text-muted">No required material attributes for this outline.</p>');
+           }
+         } else {
+           console.error('API returned error:', response.message);
+           $('#required_attributes_container_' + index).html('<p class="text-danger">Error: ' + response.message + '</p>');
+         }
+       },
+       error: function(xhr, status, error) {
+         $('#loading_attrs_' + index).hide();
+         console.error('AJAX Error:', {status: status, error: error, response: xhr.responseText});
+
+         try {
+           var errorResponse = JSON.parse(xhr.responseText);
+           console.error('Error details:', errorResponse);
+           $('#required_attributes_container_' + index).html('<p class="text-danger">Error: ' + (errorResponse.message || 'Failed to load attributes') + '</p>');
+         } catch(e) {
+           $('#required_attributes_container_' + index).html('<p class="text-danger">Error loading required attributes. Check console for details.</p>');
+         }
+       }
+     });
+   }
+
+   // Handle adding material to required attribute
+   $(document).on("click", ".addmore_required_attr", function() {
+     var index = $(this).attr("data-index");
+     var attr_name = $(this).attr("data-attr-name");
+     var attr_section = $(this).closest('.required-attr-section');
+     var material_count = attr_section.find('.expended_html').length;
+
+     var material_html = '<div class="expended_html">\
+       <div class="row">\
+         <div class="col-md-4 form-group">\
+           <label>Material</label>\
+           <select name="required_attr_value[' + index + '][' + attr_name + '][' + material_count + '][material_code]" class="form-control material-select">\
+             <option value="">Select</option>\
+             @if(!empty($materials))\
+             @foreach($materials->items as $mi)\
+             <option value="{{$mi->label}}">{{$mi->value->localized->en}}</option>\
+             @endforeach\
+             @endif\
+           </select>\
+         </div>\
+         <div class="col-md-4 form-group">\
+           <label class="btn-block">Material Percentage <a href="javascript:;" class="removeNo btn-danger btn-sm btn-xs pull-right" style="margin-bottom:5px;"> &times;</a></label>\
+           <input type="number" step=".01" class="form-control material-percentage" name="required_attr_value[' + index + '][' + attr_name + '][' + material_count + '][material_percentage]" placeholder="%" min="0" max="100">\
+         </div>\
+       </div>\
+     </div>';
+
+     attr_section.find('.new_required_attr_material').append(material_html);
+      initMaterialSelect2();
+     // Add percentage total indicator if not exists
+     if (!attr_section.find('.percentage-total').length) {
+       attr_section.find('.addmore_required_attr').before('<div class="percentage-total alert alert-info"><strong>Total: <span class="total-value">0</span>%</strong> (Should be 100%)</div>');
+     } else {
+       // Show it if it was hidden
+       attr_section.find('.percentage-total').show();
+     }
+   });
+
+   // Calculate and update percentage total when values change
+   $(document).on('input change', '.material-percentage', function() {
+     var attr_section = $(this).closest('.required-attr-section');
+     var total = 0;
+
+     attr_section.find('.material-percentage').each(function() {
+       var val = parseFloat($(this).val()) || 0;
+       total += val;
+     });
+
+     var totalDisplay = attr_section.find('.total-value');
+     totalDisplay.text(total.toFixed(2));
+
+     // Change color based on total
+     var totalAlert = attr_section.find('.percentage-total');
+     if (total === 100) {
+       totalAlert.removeClass('alert-info alert-warning alert-danger').addClass('alert-success');
+     } else if (total > 95 && total < 105) {
+       totalAlert.removeClass('alert-info alert-success alert-danger').addClass('alert-warning');
+     } else {
+       totalAlert.removeClass('alert-info alert-success alert-warning').addClass('alert-danger');
+     }
+   });
+
+   // Remove material and recalculate total
+   $(document).on('click', '.removeNo', function() {
+     var attr_section = $(this).closest('.required-attr-section');
+     $(this).closest('.expended_html').remove();
+
+     // Check if any materials left
+     var material_count = attr_section.find('.material-percentage').length;
+
+     if (material_count === 0) {
+       // Hide percentage total if no materials left
+       attr_section.find('.percentage-total').hide();
+     } else {
+       // Recalculate total
+       setTimeout(function() {
+         attr_section.find('.material-percentage').first().trigger('change');
+       }, 100);
+     }
+   });
+
+   // Form validation on submit
+   $('form').on('submit', function(e) {
+     var hasError = false;
+     var errorMessage = '';
+
+     $('.required-attr-section[data-attr-type="material_array"]').each(function() {
+       var attr_section = $(this);
+       var attr_name = attr_section.attr('data-attr-name');
+       var material_count = attr_section.find('.material-percentage').length;
+
+       if (material_count > 0) {
+         var total = 0;
+         attr_section.find('.material-percentage').each(function() {
+           var val = parseFloat($(this).val()) || 0;
+           total += val;
+         });
+
+         if (Math.abs(total - 100) > 0.01) {
+           hasError = true;
+           var displayName = attr_section.find('h6').text();
+           errorMessage += '• ' + displayName + ': Total is ' + total.toFixed(2) + '% (should be 100%)\n';
+         }
+       }
+     });
+
+     if (hasError) {
+       e.preventDefault();
+       alert('Material Percentage Error:\n\n' + errorMessage);
+       return false;
+     }
+   });
+
+   // Initialize Select2 on material dropdowns - searchable dropdown
+   function initMaterialSelect2() {
+     $('.material-select:not(.select2-hidden-accessible)').select2({
+       placeholder: 'Search and select material',
+       allowClear: true,
+       width: '100%'
+     });
+   }
+
+   // Call on page load
+   $(document).ready(function() {
+     initMaterialSelect2();
+   });
+
 </script>
 @endpush
